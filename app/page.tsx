@@ -101,13 +101,20 @@ export default function Dashboard() {
     }));
   }, [platformMetrics]);
 
-  // Filter ads metrics by selected platform
+  // Filter ads metrics by selected platform AND ensure dates are within range
   const filteredAdsMetrics = useMemo(() => {
+    // First filter by date range to ensure strict date boundaries
+    const dateFiltered = adsMetrics.filter(m => {
+      const metricDate = m.date; // Already in YYYY-MM-DD format
+      return metricDate >= dateRange.start && metricDate <= dateRange.end;
+    });
+
+    // Then filter by platform if needed
     if (selectedAdsPlatform === 'all') {
-      return adsMetrics;
+      return dateFiltered;
     }
-    return adsMetrics.filter(m => m.platform === selectedAdsPlatform);
-  }, [adsMetrics, selectedAdsPlatform]);
+    return dateFiltered.filter(m => m.platform === selectedAdsPlatform);
+  }, [adsMetrics, selectedAdsPlatform, dateRange.start, dateRange.end]);
 
   const hasData = summary && summary.totalSpend > 0;
   const hasDataSources = sources.length > 0;
