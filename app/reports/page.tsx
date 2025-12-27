@@ -258,6 +258,30 @@ export default function ReportsPage() {
             const textColor: [number, number, number] = [30, 30, 30];
             const mutedColor: [number, number, number] = [100, 100, 100];
 
+            // PDF-safe currency formatter (uses Rs. instead of ₹)
+            const pdfCurrency = (value: number): string => {
+                if (value >= 10000000) {
+                    return `Rs.${(value / 10000000).toFixed(2)}Cr`;
+                } else if (value >= 100000) {
+                    return `Rs.${(value / 100000).toFixed(2)}L`;
+                } else if (value >= 1000) {
+                    return `Rs.${(value / 1000).toFixed(1)}K`;
+                }
+                return `Rs.${value.toFixed(0)}`;
+            };
+
+            // PDF-safe number formatter
+            const pdfNumber = (value: number): string => {
+                if (value >= 10000000) {
+                    return `${(value / 10000000).toFixed(2)}Cr`;
+                } else if (value >= 100000) {
+                    return `${(value / 100000).toFixed(2)}L`;
+                } else if (value >= 1000) {
+                    return `${(value / 1000).toFixed(1)}K`;
+                }
+                return value.toLocaleString('en-IN');
+            };
+
             // Header with gradient-like effect
             doc.setFillColor(...primaryColor);
             doc.rect(0, 0, pageWidth, 35, 'F');
@@ -300,11 +324,11 @@ export default function ReportsPage() {
             const boxWidth = (pageWidth - 40) / 3;
             const boxHeight = 22;
             const summaryItems = [
-                { label: 'Total Spend', value: formatNumber(filteredSummary.totalSpend, 'currency'), color: primaryColor },
-                { label: 'Total Sales', value: formatNumber(filteredSummary.totalSales, 'currency'), color: successColor },
+                { label: 'Total Spend', value: pdfCurrency(filteredSummary.totalSpend), color: primaryColor },
+                { label: 'Total Sales', value: pdfCurrency(filteredSummary.totalSales), color: successColor },
                 { label: 'ROAS', value: `${filteredSummary.avgRoas.toFixed(2)}x`, color: [245, 158, 11] as [number, number, number] },
-                { label: 'Impressions', value: formatNumber(filteredSummary.totalImpressions), color: [6, 182, 212] as [number, number, number] },
-                { label: 'Clicks', value: formatNumber(filteredSummary.totalClicks), color: [236, 72, 153] as [number, number, number] },
+                { label: 'Impressions', value: pdfNumber(filteredSummary.totalImpressions), color: [6, 182, 212] as [number, number, number] },
+                { label: 'Clicks', value: pdfNumber(filteredSummary.totalClicks), color: [236, 72, 153] as [number, number, number] },
                 { label: 'CTR', value: `${filteredSummary.avgCtr.toFixed(2)}%`, color: [239, 68, 68] as [number, number, number] },
             ];
 
@@ -419,8 +443,8 @@ export default function ReportsPage() {
 
             const platformTableData = roasByPlatform.map(p => [
                 p.name,
-                `₹${p.spend.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-                `₹${p.sales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                `Rs.${p.spend.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                `Rs.${p.sales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
                 `${p.roas.toFixed(2)}x`,
                 `${((p.spend / filteredSummary.totalSpend) * 100).toFixed(1)}%`,
             ]);
@@ -445,8 +469,8 @@ export default function ReportsPage() {
 
             const tableData = aggregatedData.slice(0, 25).map(row => [
                 row.label,
-                `₹${row.spend.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-                `₹${row.sales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                `Rs.${row.spend.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                `Rs.${row.sales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
                 `${row.roas.toFixed(2)}x`,
                 row.impressions.toLocaleString('en-IN'),
                 row.clicks.toLocaleString('en-IN'),
@@ -482,33 +506,33 @@ export default function ReportsPage() {
 
             // ROAS insight
             if (filteredSummary.avgRoas >= 2) {
-                insights.push('✓ Excellent ROAS performance - campaigns are generating strong returns');
+                insights.push('[OK] Excellent ROAS performance - campaigns are generating strong returns');
             } else if (filteredSummary.avgRoas >= 1) {
-                insights.push('◐ ROAS is positive but could be optimized for better returns');
+                insights.push('[--] ROAS is positive but could be optimized for better returns');
             } else {
-                insights.push('⚠ ROAS below 1x - consider reviewing underperforming campaigns');
+                insights.push('[!!] ROAS below 1x - consider reviewing underperforming campaigns');
             }
 
             // CTR insight
             if (filteredSummary.avgCtr >= 2) {
-                insights.push('✓ Strong CTR indicates engaging ad creatives');
+                insights.push('[OK] Strong CTR indicates engaging ad creatives');
             } else if (filteredSummary.avgCtr >= 0.5) {
-                insights.push('◐ CTR is average - test new ad variations to improve');
+                insights.push('[--] CTR is average - test new ad variations to improve');
             } else {
-                insights.push('⚠ Low CTR - recommend testing new creatives and targeting');
+                insights.push('[!!] Low CTR - recommend testing new creatives and targeting');
             }
 
             // Profit insight
             const profit = filteredSummary.totalSales - filteredSummary.totalSpend;
             const profitMargin = filteredSummary.totalSpend > 0 ? (profit / filteredSummary.totalSpend) * 100 : 0;
-            insights.push(`Net Profit: ${formatNumber(profit, 'currency')} (${profitMargin.toFixed(1)}% margin)`);
+            insights.push(`Net Profit: ${pdfCurrency(profit)} (${profitMargin.toFixed(1)}% margin)`);
 
             // Best platform
             if (roasByPlatform.length > 0) {
                 const bestROAS = roasByPlatform.reduce((a, b) => a.roas > b.roas ? a : b);
                 const highestSpend = roasByPlatform.reduce((a, b) => a.spend > b.spend ? a : b);
                 insights.push(`Best ROAS: ${bestROAS.name} (${bestROAS.roas.toFixed(2)}x)`);
-                insights.push(`Highest Spend: ${highestSpend.name} (${formatNumber(highestSpend.spend, 'currency')})`);
+                insights.push(`Highest Spend: ${highestSpend.name} (${pdfCurrency(highestSpend.spend)})`);
             }
 
             insights.forEach(insight => {
@@ -532,7 +556,7 @@ export default function ReportsPage() {
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('📊 Advertising Performance Analysis', 15, 17);
+            doc.text('Advertising Performance Analysis', 15, 17);
             yPos = 35;
 
             doc.setTextColor(...textColor);
@@ -548,14 +572,14 @@ export default function ReportsPage() {
             yPos += 8;
 
             const adsKpis = [
-                ['Total Ad Spend', formatNumber(adsSummary.totalSpend, 'currency')],
-                ['Ad-Attributed Sales', formatNumber(adsSummary.totalSales, 'currency')],
+                ['Total Ad Spend', pdfCurrency(adsSummary.totalSpend)],
+                ['Ad-Attributed Sales', pdfCurrency(adsSummary.totalSales)],
                 ['ROAS (Return on Ad Spend)', `${adsSummary.avgRoas.toFixed(2)}x`],
-                ['Total Impressions', formatNumber(adsSummary.totalImpressions)],
-                ['Total Clicks', formatNumber(adsSummary.totalClicks)],
+                ['Total Impressions', pdfNumber(adsSummary.totalImpressions)],
+                ['Total Clicks', pdfNumber(adsSummary.totalClicks)],
                 ['Click-Through Rate (CTR)', `${adsSummary.avgCtr.toFixed(2)}%`],
-                ['Cost Per Click (CPC)', `₹${adsSummary.totalClicks > 0 ? (adsSummary.totalSpend / adsSummary.totalClicks).toFixed(2) : '0.00'}`],
-                ['Cost Per Impression (CPM)', `₹${adsSummary.totalImpressions > 0 ? ((adsSummary.totalSpend / adsSummary.totalImpressions) * 1000).toFixed(2) : '0.00'}`],
+                ['Cost Per Click (CPC)', `Rs.${adsSummary.totalClicks > 0 ? (adsSummary.totalSpend / adsSummary.totalClicks).toFixed(2) : '0.00'}`],
+                ['Cost Per Impression (CPM)', `Rs.${adsSummary.totalImpressions > 0 ? ((adsSummary.totalSpend / adsSummary.totalImpressions) * 1000).toFixed(2) : '0.00'}`],
             ];
 
             autoTable(doc, {
@@ -579,19 +603,19 @@ export default function ReportsPage() {
 
             const adsInsights = [];
             if (adsSummary.avgRoas >= 2) {
-                adsInsights.push('✓ Strong ROAS: Your ads are generating excellent returns. Consider scaling budget.');
+                adsInsights.push('[OK] Strong ROAS: Your ads are generating excellent returns. Consider scaling budget.');
             } else if (adsSummary.avgRoas >= 1) {
-                adsInsights.push('◐ Moderate ROAS: Ads are profitable but have room for optimization.');
+                adsInsights.push('[--] Moderate ROAS: Ads are profitable but have room for optimization.');
             } else if (adsSummary.avgRoas > 0) {
-                adsInsights.push('⚠ Low ROAS: Review targeting, creatives, and keywords to improve performance.');
+                adsInsights.push('[!!] Low ROAS: Review targeting, creatives, and keywords to improve performance.');
             }
             if (adsSummary.avgCtr >= 1.5) {
-                adsInsights.push('✓ High CTR: Your ad creatives are compelling and relevant to the audience.');
+                adsInsights.push('[OK] High CTR: Your ad creatives are compelling and relevant to the audience.');
             } else if (adsSummary.avgCtr < 0.5) {
-                adsInsights.push('⚠ Low CTR: Consider A/B testing headlines and images to improve engagement.');
+                adsInsights.push('[!!] Low CTR: Consider A/B testing headlines and images to improve engagement.');
             }
             const adProfit = adsSummary.totalSales - adsSummary.totalSpend;
-            adsInsights.push(`Net Ad Profit/Loss: ${formatNumber(adProfit, 'currency')} (${adProfit >= 0 ? 'Profitable' : 'Loss'})`);
+            adsInsights.push(`Net Ad Profit/Loss: ${pdfCurrency(adProfit)} (${adProfit >= 0 ? 'Profitable' : 'Loss'})`);
 
             adsInsights.forEach(insight => {
                 doc.text(insight, 20, yPos);
@@ -609,7 +633,7 @@ export default function ReportsPage() {
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('💰 Sales Performance Analysis', 15, 17);
+            doc.text('Sales Performance Analysis', 15, 17);
             yPos = 35;
 
             doc.setTextColor(...textColor);
@@ -625,9 +649,9 @@ export default function ReportsPage() {
             yPos += 8;
 
             const salesKpis = [
-                ['Total Product Sales', formatNumber(salesSummary.totalSales, 'currency')],
+                ['Total Product Sales', pdfCurrency(salesSummary.totalSales)],
                 ['Total Orders', salesSummary.totalOrders.toLocaleString('en-IN')],
-                ['Average Order Value', `₹${salesSummary.totalOrders > 0 ? (salesSummary.totalSales / salesSummary.totalOrders).toFixed(2) : '0.00'}`],
+                ['Average Order Value', `Rs.${salesSummary.totalOrders > 0 ? (salesSummary.totalSales / salesSummary.totalOrders).toFixed(2) : '0.00'}`],
                 ['Sales Records', salesSummary.count.toString()],
             ];
 
@@ -653,7 +677,7 @@ export default function ReportsPage() {
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('📈 Combined Business Overview', 15, 17);
+            doc.text('Combined Business Overview', 15, 17);
             yPos = 35;
 
             doc.setTextColor(...textColor);
@@ -674,13 +698,13 @@ export default function ReportsPage() {
             const profitMarginPct = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
 
             const combinedKpis = [
-                ['Total Revenue (All Sources)', formatNumber(totalRevenue, 'currency')],
-                ['Total Marketing Spend', formatNumber(totalCost, 'currency')],
-                ['Net Profit', formatNumber(netProfit, 'currency')],
+                ['Total Revenue (All Sources)', pdfCurrency(totalRevenue)],
+                ['Total Marketing Spend', pdfCurrency(totalCost)],
+                ['Net Profit', pdfCurrency(netProfit)],
                 ['Profit Margin', `${profitMarginPct.toFixed(1)}%`],
                 ['Overall ROAS', `${combinedSummary.avgRoas.toFixed(2)}x`],
-                ['Total Customer Reach (Impressions)', formatNumber(combinedSummary.totalImpressions)],
-                ['Total Engagement (Clicks)', formatNumber(combinedSummary.totalClicks)],
+                ['Total Customer Reach (Impressions)', pdfNumber(combinedSummary.totalImpressions)],
+                ['Total Engagement (Clicks)', pdfNumber(combinedSummary.totalClicks)],
                 ['Conversion Rate (Clicks to Sales)', `${combinedSummary.totalClicks > 0 ? ((combinedSummary.totalSales / combinedSummary.totalClicks) * 100).toFixed(2) : '0.00'}%`],
             ];
 
@@ -704,25 +728,25 @@ export default function ReportsPage() {
             doc.setFont('helvetica', 'normal');
 
             const recommendations = [
-                `• Total marketing investment: ${formatNumber(totalCost, 'currency')} generated ${formatNumber(totalRevenue, 'currency')} in sales`,
-                `• For every ₹1 spent on advertising, you earned ₹${combinedSummary.avgRoas.toFixed(2)} back`,
+                `- Total marketing investment: ${pdfCurrency(totalCost)} generated ${pdfCurrency(totalRevenue)} in sales`,
+                `- For every Rs.1 spent on advertising, you earned Rs.${combinedSummary.avgRoas.toFixed(2)} back`,
                 netProfit >= 0
-                    ? `• Your campaigns are profitable with ${formatNumber(netProfit, 'currency')} net gain`
-                    : `• Campaigns are currently at a loss of ${formatNumber(Math.abs(netProfit), 'currency')} - optimization needed`,
+                    ? `- Your campaigns are profitable with ${pdfCurrency(netProfit)} net gain`
+                    : `- Campaigns are currently at a loss of ${pdfCurrency(Math.abs(netProfit))} - optimization needed`,
             ];
 
             if (combinedSummary.avgRoas < 1) {
-                recommendations.push('• Action: Review targeting, pause underperforming ads, A/B test creatives');
+                recommendations.push('- Action: Review targeting, pause underperforming ads, A/B test creatives');
             } else if (combinedSummary.avgRoas >= 2) {
-                recommendations.push('• Action: Consider increasing budget on high-performing campaigns');
+                recommendations.push('- Action: Consider increasing budget on high-performing campaigns');
             }
 
             if (roasByPlatform.length > 1) {
                 const best = roasByPlatform.reduce((a, b) => a.roas > b.roas ? a : b);
                 const worst = roasByPlatform.reduce((a, b) => a.roas < b.roas ? a : b);
-                recommendations.push(`• Best performing platform: ${best.name} (${best.roas.toFixed(2)}x ROAS)`);
+                recommendations.push(`- Best performing platform: ${best.name} (${best.roas.toFixed(2)}x ROAS)`);
                 if (worst.name !== best.name) {
-                    recommendations.push(`• Lowest performing: ${worst.name} (${worst.roas.toFixed(2)}x) - consider optimization`);
+                    recommendations.push(`- Lowest performing: ${worst.name} (${worst.roas.toFixed(2)}x) - consider optimization`);
                 }
             }
 
