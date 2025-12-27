@@ -132,28 +132,28 @@ export default function CampaignsPage() {
             {/* Summary Stats */}
             {summary && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="glass rounded-xl p-4">
+                    <div className="glass rounded-xl p-4 animate-slide-up stagger-1 card-hover">
                         <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
                             <DollarSign className="w-4 h-4" />
                             <span className="text-sm">Total Spend</span>
                         </div>
                         <p className="text-2xl font-bold">{formatNumber(summary.totalSpend, 'currency')}</p>
                     </div>
-                    <div className="glass rounded-xl p-4">
+                    <div className="glass rounded-xl p-4 animate-slide-up stagger-2 card-hover">
                         <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
                             <TrendingUp className="w-4 h-4" />
                             <span className="text-sm">Total Sales</span>
                         </div>
                         <p className="text-2xl font-bold">{formatNumber(summary.totalSales, 'currency')}</p>
                     </div>
-                    <div className="glass rounded-xl p-4">
+                    <div className="glass rounded-xl p-4 animate-slide-up stagger-3 card-hover">
                         <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
                             <Eye className="w-4 h-4" />
                             <span className="text-sm">Avg CTR</span>
                         </div>
                         <p className="text-2xl font-bold">{summary.avgCtr.toFixed(2)}%</p>
                     </div>
-                    <div className="glass rounded-xl p-4">
+                    <div className="glass rounded-xl p-4 animate-slide-up stagger-4 card-hover">
                         <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
                             <Calendar className="w-4 h-4" />
                             <span className="text-sm">Avg ROAS</span>

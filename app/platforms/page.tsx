@@ -100,7 +100,10 @@ export default function PlatformsPage() {
                     {platformMetrics.map((pm, index) => {
                         const color = PLATFORM_COLORS[pm.platform.toLowerCase()] || COLORS[index % COLORS.length];
                         return (
-                            <div key={pm.platform} className="glass rounded-xl p-6">
+                            <div
+                                key={pm.platform}
+                                className={`glass rounded-xl p-6 card-hover animate-slide-up stagger-${Math.min(index + 1, 5)}`}
+                            >
                                 <div className="flex items-center gap-3 mb-4">
                                     <div
                                         className="w-10 h-10 rounded-lg flex items-center justify-center"

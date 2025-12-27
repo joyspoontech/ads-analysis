@@ -232,10 +232,13 @@ export default function ReportsPage() {
 
             {/* Export Options */}
             <div className="grid md:grid-cols-3 gap-4">
-                {exportFormats.map((format) => (
-                    <div key={format.id} className="glass rounded-xl p-6">
+                {exportFormats.map((format, index) => (
+                    <div
+                        key={format.id}
+                        className={`glass rounded-xl p-6 card-hover animate-slide-up stagger-${index + 1}`}
+                    >
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-[var(--primary-subtle)] flex items-center justify-center">
                                 <format.icon className="w-5 h-5 text-[var(--primary)]" />
                             </div>
                             <div>

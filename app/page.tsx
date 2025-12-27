@@ -198,35 +198,43 @@ export default function Dashboard() {
       {/* Stats Grid */}
       {(hasData || isLoading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Spends"
-            value={summary?.totalSpend || 0}
-            format="currency"
-            icon={DollarSign}
-            color="primary"
-          />
-          <StatCard
-            title="Product Sales"
-            value={summary?.totalProductSales || 0}
-            format="currency"
-            icon={TrendingUp}
-            color="success"
-          />
-          <StatCard
-            title="Average ROAS"
-            value={summary?.avgRoas || 0}
-            format="number"
-            icon={Target}
-            color="secondary"
-            suffix="x"
-          />
-          <StatCard
-            title="Total Impressions"
-            value={summary?.totalImpressions || 0}
-            format="number"
-            icon={Eye}
-            color="warning"
-          />
+          <div className="animate-slide-up stagger-1">
+            <StatCard
+              title="Total Spends"
+              value={summary?.totalSpend || 0}
+              format="currency"
+              icon={DollarSign}
+              color="primary"
+            />
+          </div>
+          <div className="animate-slide-up stagger-2">
+            <StatCard
+              title="Product Sales"
+              value={summary?.totalProductSales || 0}
+              format="currency"
+              icon={TrendingUp}
+              color="success"
+            />
+          </div>
+          <div className="animate-slide-up stagger-3">
+            <StatCard
+              title="Average ROAS"
+              value={summary?.avgRoas || 0}
+              format="number"
+              icon={Target}
+              color="secondary"
+              suffix="x"
+            />
+          </div>
+          <div className="animate-slide-up stagger-4">
+            <StatCard
+              title="Total Impressions"
+              value={summary?.totalImpressions || 0}
+              format="number"
+              icon={Eye}
+              color="warning"
+            />
+          </div>
         </div>
       )}
 

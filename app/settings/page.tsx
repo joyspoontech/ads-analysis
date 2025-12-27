@@ -1,15 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import { Settings, Database, Palette, Bell, Save, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Database, Palette, Bell, Save, Check, Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function SettingsPage() {
     const [saved, setSaved] = useState(false);
+    const [dashboardName, setDashboardName] = useState('Joyspoon Analytics');
+    const [defaultRange, setDefaultRange] = useState('30');
+    const [currency, setCurrency] = useState('₹');
+    const [notifications, setNotifications] = useState({
+        syncComplete: true,
+        lowRoas: true,
+        dailyEmail: false,
+    });
+    const { theme, setTheme } = useTheme();
 
     const handleSave = () => {
+        // Save to localStorage
+        localStorage.setItem('settings', JSON.stringify({
+            dashboardName,
+            defaultRange,
+            currency,
+            notifications,
+        }));
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
+
+    // Load settings on mount
+    useEffect(() => {
+        const savedSettings = localStorage.getItem('settings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            setDashboardName(settings.dashboardName || 'Joyspoon Analytics');
+            setDefaultRange(settings.defaultRange || '30');
+            setCurrency(settings.currency || '₹');
+            setNotifications(settings.notifications || {
+                syncComplete: true,
+                lowRoas: true,
+                dailyEmail: false,
+            });
+        }
+    }, []);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -24,9 +57,9 @@ export default function SettingsPage() {
             {/* Settings Sections */}
             <div className="space-y-6">
                 {/* General Settings */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-xl p-6 animate-slide-up stagger-1">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--primary-subtle)] flex items-center justify-center">
                             <Settings className="w-5 h-5 text-[var(--primary)]" />
                         </div>
                         <div>
@@ -40,15 +73,20 @@ export default function SettingsPage() {
                             <label className="block text-sm font-medium mb-2">Dashboard Name</label>
                             <input
                                 type="text"
-                                defaultValue="Joyspoon Analytics"
+                                value={dashboardName}
+                                onChange={(e) => setDashboardName(e.target.value)}
                                 className="input-field max-w-md"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-2">Default Date Range</label>
-                            <select className="select-field max-w-md">
+                            <select
+                                className="select-field max-w-md"
+                                value={defaultRange}
+                                onChange={(e) => setDefaultRange(e.target.value)}
+                            >
                                 <option value="7">Last 7 days</option>
-                                <option value="30" selected>Last 30 days</option>
+                                <option value="30">Last 30 days</option>
                                 <option value="90">Last 90 days</option>
                                 <option value="365">Last year</option>
                             </select>
@@ -57,9 +95,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Database Connection */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-xl p-6 animate-slide-up stagger-2">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-lg bg-[var(--success)]/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--success-subtle)] flex items-center justify-center">
                             <Database className="w-5 h-5 text-[var(--success)]" />
                         </div>
                         <div>
@@ -73,8 +111,8 @@ export default function SettingsPage() {
                             <label className="block text-sm font-medium mb-2">Supabase URL</label>
                             <input
                                 type="text"
-                                defaultValue="https://fhomcjmquvhvakvfinsv.supabase.co"
-                                className="input-field"
+                                defaultValue="https://vdhxrrbkbgvzicskvqex.supabase.co"
+                                className="input-field opacity-60"
                                 disabled
                             />
                         </div>
@@ -86,10 +124,10 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Appearance */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-xl p-6 animate-slide-up stagger-3">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-lg bg-[var(--accent-pink)]/20 flex items-center justify-center">
-                            <Palette className="w-5 h-5 text-[var(--accent-pink)]" />
+                        <div className="w-10 h-10 rounded-lg bg-[var(--primary-subtle)] flex items-center justify-center">
+                            <Palette className="w-5 h-5 text-[var(--primary)]" />
                         </div>
                         <div>
                             <h2 className="font-semibold">Appearance</h2>
@@ -101,18 +139,36 @@ export default function SettingsPage() {
                         <div>
                             <label className="block text-sm font-medium mb-2">Theme</label>
                             <div className="flex gap-3">
-                                <button className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white font-medium">
+                                <button
+                                    onClick={() => setTheme('dark')}
+                                    className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all ${theme === 'dark'
+                                            ? 'bg-[var(--primary)] text-white'
+                                            : 'bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)]'
+                                        }`}
+                                >
+                                    <Moon className="w-4 h-4" />
                                     Dark
                                 </button>
-                                <button className="px-4 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] font-medium opacity-50 cursor-not-allowed">
-                                    Light (Coming Soon)
+                                <button
+                                    onClick={() => setTheme('light')}
+                                    className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all ${theme === 'light'
+                                            ? 'bg-[var(--primary)] text-white'
+                                            : 'bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)]'
+                                        }`}
+                                >
+                                    <Sun className="w-4 h-4" />
+                                    Light
                                 </button>
                             </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-2">Currency Symbol</label>
-                            <select className="select-field max-w-md">
-                                <option value="₹" selected>₹ (Indian Rupee)</option>
+                            <select
+                                className="select-field max-w-md"
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                            >
+                                <option value="₹">₹ (Indian Rupee)</option>
                                 <option value="$">$ (US Dollar)</option>
                                 <option value="€">€ (Euro)</option>
                             </select>
@@ -121,9 +177,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Notifications */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-xl p-6 animate-slide-up stagger-4">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-lg bg-[var(--warning)]/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--warning-subtle)] flex items-center justify-center">
                             <Bell className="w-5 h-5 text-[var(--warning)]" />
                         </div>
                         <div>
@@ -133,24 +189,39 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" defaultChecked className="w-5 h-5 rounded accent-[var(--primary)]" />
-                            <span>Show sync completion notifications</span>
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={notifications.syncComplete}
+                                onChange={(e) => setNotifications({ ...notifications, syncComplete: e.target.checked })}
+                                className="w-5 h-5 rounded accent-[var(--primary)]"
+                            />
+                            <span className="group-hover:text-[var(--primary)] transition-colors">Show sync completion notifications</span>
                         </label>
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" defaultChecked className="w-5 h-5 rounded accent-[var(--primary)]" />
-                            <span>Alert on low ROAS (&lt; 1.0)</span>
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={notifications.lowRoas}
+                                onChange={(e) => setNotifications({ ...notifications, lowRoas: e.target.checked })}
+                                className="w-5 h-5 rounded accent-[var(--primary)]"
+                            />
+                            <span className="group-hover:text-[var(--primary)] transition-colors">Alert on low ROAS (&lt; 1.0)</span>
                         </label>
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded accent-[var(--primary)]" />
-                            <span>Daily summary email</span>
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={notifications.dailyEmail}
+                                onChange={(e) => setNotifications({ ...notifications, dailyEmail: e.target.checked })}
+                                className="w-5 h-5 rounded accent-[var(--primary)]"
+                            />
+                            <span className="group-hover:text-[var(--primary)] transition-colors">Daily summary email</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end animate-slide-up stagger-5">
                 <button
                     onClick={handleSave}
                     className="btn-primary flex items-center gap-2"
