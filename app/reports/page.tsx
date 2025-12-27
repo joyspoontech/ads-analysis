@@ -140,6 +140,43 @@ export default function ReportsPage() {
         }));
     }, [filteredMetrics]);
 
+    // Separate Ads and Sales summaries for comprehensive report
+    const adsOnlyMetrics = useMemo(() => {
+        return dailyMetrics.filter(m => m.data_type === 'ads' && m.date >= dateRange.start && m.date <= dateRange.end);
+    }, [dailyMetrics, dateRange]);
+
+    const salesOnlyMetrics = useMemo(() => {
+        return dailyMetrics.filter(m => m.data_type === 'sales' && m.date >= dateRange.start && m.date <= dateRange.end);
+    }, [dailyMetrics, dateRange]);
+
+    const adsSummary = useMemo(() => {
+        const totalSpend = adsOnlyMetrics.reduce((sum, m) => sum + Number(m.total_spend), 0);
+        const totalSales = adsOnlyMetrics.reduce((sum, m) => sum + Number(m.total_sales), 0);
+        const totalImpressions = adsOnlyMetrics.reduce((sum, m) => sum + Number(m.total_impressions), 0);
+        const totalClicks = adsOnlyMetrics.reduce((sum, m) => sum + Number(m.total_clicks), 0);
+        const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+        const avgRoas = totalSpend > 0 ? totalSales / totalSpend : 0;
+        return { totalSpend, totalSales, totalImpressions, totalClicks, avgCtr, avgRoas, count: adsOnlyMetrics.length };
+    }, [adsOnlyMetrics]);
+
+    const salesSummary = useMemo(() => {
+        const totalSales = salesOnlyMetrics.reduce((sum, m) => sum + Number(m.total_sales), 0);
+        const totalOrders = salesOnlyMetrics.reduce((sum, m) => sum + Number(m.total_orders || 0), 0);
+        return { totalSales, totalOrders, count: salesOnlyMetrics.length };
+    }, [salesOnlyMetrics]);
+
+    // Combined summary (all data)
+    const combinedSummary = useMemo(() => {
+        const allMetrics = dailyMetrics.filter(m => m.date >= dateRange.start && m.date <= dateRange.end);
+        const totalSpend = allMetrics.reduce((sum, m) => sum + Number(m.total_spend), 0);
+        const totalSales = allMetrics.reduce((sum, m) => sum + Number(m.total_sales), 0);
+        const totalImpressions = allMetrics.reduce((sum, m) => sum + Number(m.total_impressions), 0);
+        const totalClicks = allMetrics.reduce((sum, m) => sum + Number(m.total_clicks), 0);
+        const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+        const avgRoas = totalSpend > 0 ? totalSales / totalSpend : 0;
+        return { totalSpend, totalSales, totalImpressions, totalClicks, avgCtr, avgRoas };
+    }, [dailyMetrics, dateRange]);
+
     // Export to CSV
     const exportToCsv = () => {
         setExporting('csv');
@@ -204,7 +241,7 @@ export default function ReportsPage() {
 
         try {
             // Dynamic imports
-            const [{ default: jsPDF }, { default: html2canvas }, autoTableModule] = await Promise.all([
+            const [{ default: jsPDF }, { default: html2canvas }, { default: autoTable }] = await Promise.all([
                 import('jspdf'),
                 import('html2canvas'),
                 import('jspdf-autotable'),
@@ -388,7 +425,7 @@ export default function ReportsPage() {
                 `${((p.spend / filteredSummary.totalSpend) * 100).toFixed(1)}%`,
             ]);
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: [['Platform', 'Spend', 'Sales', 'ROAS', 'Share']],
                 body: platformTableData,
@@ -415,7 +452,7 @@ export default function ReportsPage() {
                 row.clicks.toLocaleString('en-IN'),
             ]);
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: [['Period', 'Spend', 'Sales', 'ROAS', 'Impressions', 'Clicks']],
                 body: tableData,
@@ -480,6 +517,221 @@ export default function ReportsPage() {
                     yPos = 20;
                 }
                 doc.text(insight, 20, yPos);
+                yPos += 7;
+            });
+
+            // ==========================================
+            // PAGE 3: ADS PERFORMANCE ANALYSIS
+            // ==========================================
+            doc.addPage();
+            yPos = 15;
+
+            // Section Header
+            doc.setFillColor(139, 92, 246);
+            doc.rect(0, 0, pageWidth, 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('📊 Advertising Performance Analysis', 15, 17);
+            yPos = 35;
+
+            doc.setTextColor(...textColor);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`This section analyzes advertising data from ${adsSummary.count} records`, 15, yPos);
+            yPos += 12;
+
+            // Ads KPIs
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Key Advertising Metrics', 15, yPos);
+            yPos += 8;
+
+            const adsKpis = [
+                ['Total Ad Spend', formatNumber(adsSummary.totalSpend, 'currency')],
+                ['Ad-Attributed Sales', formatNumber(adsSummary.totalSales, 'currency')],
+                ['ROAS (Return on Ad Spend)', `${adsSummary.avgRoas.toFixed(2)}x`],
+                ['Total Impressions', formatNumber(adsSummary.totalImpressions)],
+                ['Total Clicks', formatNumber(adsSummary.totalClicks)],
+                ['Click-Through Rate (CTR)', `${adsSummary.avgCtr.toFixed(2)}%`],
+                ['Cost Per Click (CPC)', `₹${adsSummary.totalClicks > 0 ? (adsSummary.totalSpend / adsSummary.totalClicks).toFixed(2) : '0.00'}`],
+                ['Cost Per Impression (CPM)', `₹${adsSummary.totalImpressions > 0 ? ((adsSummary.totalSpend / adsSummary.totalImpressions) * 1000).toFixed(2) : '0.00'}`],
+            ];
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Metric', 'Value']],
+                body: adsKpis,
+                theme: 'plain',
+                headStyles: { fillColor: [248, 248, 252], textColor: textColor, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 4 },
+                columnStyles: { 0: { fontStyle: 'bold' } },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Ads Performance Insights
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Advertising Insights', 15, yPos);
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+
+            const adsInsights = [];
+            if (adsSummary.avgRoas >= 2) {
+                adsInsights.push('✓ Strong ROAS: Your ads are generating excellent returns. Consider scaling budget.');
+            } else if (adsSummary.avgRoas >= 1) {
+                adsInsights.push('◐ Moderate ROAS: Ads are profitable but have room for optimization.');
+            } else if (adsSummary.avgRoas > 0) {
+                adsInsights.push('⚠ Low ROAS: Review targeting, creatives, and keywords to improve performance.');
+            }
+            if (adsSummary.avgCtr >= 1.5) {
+                adsInsights.push('✓ High CTR: Your ad creatives are compelling and relevant to the audience.');
+            } else if (adsSummary.avgCtr < 0.5) {
+                adsInsights.push('⚠ Low CTR: Consider A/B testing headlines and images to improve engagement.');
+            }
+            const adProfit = adsSummary.totalSales - adsSummary.totalSpend;
+            adsInsights.push(`Net Ad Profit/Loss: ${formatNumber(adProfit, 'currency')} (${adProfit >= 0 ? 'Profitable' : 'Loss'})`);
+
+            adsInsights.forEach(insight => {
+                doc.text(insight, 20, yPos);
+                yPos += 7;
+            });
+
+            // ==========================================
+            // PAGE 4: SALES PERFORMANCE ANALYSIS
+            // ==========================================
+            doc.addPage();
+            yPos = 15;
+
+            doc.setFillColor(16, 185, 129);
+            doc.rect(0, 0, pageWidth, 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('💰 Sales Performance Analysis', 15, 17);
+            yPos = 35;
+
+            doc.setTextColor(...textColor);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`This section analyzes sales data from ${salesSummary.count} records`, 15, yPos);
+            yPos += 12;
+
+            // Sales KPIs
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Key Sales Metrics', 15, yPos);
+            yPos += 8;
+
+            const salesKpis = [
+                ['Total Product Sales', formatNumber(salesSummary.totalSales, 'currency')],
+                ['Total Orders', salesSummary.totalOrders.toLocaleString('en-IN')],
+                ['Average Order Value', `₹${salesSummary.totalOrders > 0 ? (salesSummary.totalSales / salesSummary.totalOrders).toFixed(2) : '0.00'}`],
+                ['Sales Records', salesSummary.count.toString()],
+            ];
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Metric', 'Value']],
+                body: salesKpis,
+                theme: 'plain',
+                headStyles: { fillColor: [248, 248, 252], textColor: textColor, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 4 },
+                columnStyles: { 0: { fontStyle: 'bold' } },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // ==========================================
+            // PAGE 5: COMBINED BUSINESS OVERVIEW
+            // ==========================================
+            doc.addPage();
+            yPos = 15;
+
+            doc.setFillColor(245, 158, 11);
+            doc.rect(0, 0, pageWidth, 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('📈 Combined Business Overview', 15, 17);
+            yPos = 35;
+
+            doc.setTextColor(...textColor);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('This section provides a holistic view combining advertising and sales data', 15, yPos);
+            yPos += 12;
+
+            // Combined metrics
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Combined Business Metrics', 15, yPos);
+            yPos += 8;
+
+            const totalRevenue = combinedSummary.totalSales;
+            const totalCost = combinedSummary.totalSpend;
+            const netProfit = totalRevenue - totalCost;
+            const profitMarginPct = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
+
+            const combinedKpis = [
+                ['Total Revenue (All Sources)', formatNumber(totalRevenue, 'currency')],
+                ['Total Marketing Spend', formatNumber(totalCost, 'currency')],
+                ['Net Profit', formatNumber(netProfit, 'currency')],
+                ['Profit Margin', `${profitMarginPct.toFixed(1)}%`],
+                ['Overall ROAS', `${combinedSummary.avgRoas.toFixed(2)}x`],
+                ['Total Customer Reach (Impressions)', formatNumber(combinedSummary.totalImpressions)],
+                ['Total Engagement (Clicks)', formatNumber(combinedSummary.totalClicks)],
+                ['Conversion Rate (Clicks to Sales)', `${combinedSummary.totalClicks > 0 ? ((combinedSummary.totalSales / combinedSummary.totalClicks) * 100).toFixed(2) : '0.00'}%`],
+            ];
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Metric', 'Value']],
+                body: combinedKpis,
+                theme: 'plain',
+                headStyles: { fillColor: [248, 248, 252], textColor: textColor, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 4 },
+                columnStyles: { 0: { fontStyle: 'bold' } },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Strategic Recommendations
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Strategic Recommendations', 15, yPos);
+            yPos += 10;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+
+            const recommendations = [
+                `• Total marketing investment: ${formatNumber(totalCost, 'currency')} generated ${formatNumber(totalRevenue, 'currency')} in sales`,
+                `• For every ₹1 spent on advertising, you earned ₹${combinedSummary.avgRoas.toFixed(2)} back`,
+                netProfit >= 0
+                    ? `• Your campaigns are profitable with ${formatNumber(netProfit, 'currency')} net gain`
+                    : `• Campaigns are currently at a loss of ${formatNumber(Math.abs(netProfit), 'currency')} - optimization needed`,
+            ];
+
+            if (combinedSummary.avgRoas < 1) {
+                recommendations.push('• Action: Review targeting, pause underperforming ads, A/B test creatives');
+            } else if (combinedSummary.avgRoas >= 2) {
+                recommendations.push('• Action: Consider increasing budget on high-performing campaigns');
+            }
+
+            if (roasByPlatform.length > 1) {
+                const best = roasByPlatform.reduce((a, b) => a.roas > b.roas ? a : b);
+                const worst = roasByPlatform.reduce((a, b) => a.roas < b.roas ? a : b);
+                recommendations.push(`• Best performing platform: ${best.name} (${best.roas.toFixed(2)}x ROAS)`);
+                if (worst.name !== best.name) {
+                    recommendations.push(`• Lowest performing: ${worst.name} (${worst.roas.toFixed(2)}x) - consider optimization`);
+                }
+            }
+
+            recommendations.forEach(rec => {
+                if (yPos > pageHeight - 15) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.text(rec, 15, yPos);
                 yPos += 7;
             });
 
